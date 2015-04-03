@@ -117,9 +117,47 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	kCenter = CGPointMake(gameScreen.width/2, gameScreen.height/2);
 	
 	//create background
-	background = [[SKSpriteNode alloc] initWithColor:[UIColor redColor] size:gameScreen];
+	
+	//old background
+	//background = [[SKSpriteNode alloc] initWithColor:[UIColor redColor] size:gameScreen];
+	//[self addChild:background];
+	//background.position = kCenter;
+	
+	//get context
+	CGRect bounds = CGRectMake(0, 0, size.width, size.height);
+	bool opaque = NO;
+	CGFloat scale= 0;
+	UIGraphicsBeginImageContextWithOptions(size, opaque, scale);
+	CGContextRef context = UIGraphicsGetCurrentContext();
+	
+	// Create the colors
+	UIColor *darkOp = [UIColor redColor];
+	UIColor *lightOp = [UIColor colorWithRed:1.0 green:0.5 blue:0.5 alpha:1.0];
+ 
+	// Create the gradient
+	CGFloat locations[2];
+	CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+	NSMutableArray *colors = [NSMutableArray arrayWithCapacity:3];
+	[colors addObject:(id)lightOp.CGColor];
+	locations[0] = 0.0;
+	[colors addObject:(id)darkOp.CGColor];
+	locations[1] = 1.0;
+	
+	CGGradientRef ret = CGGradientCreateWithColors(space, (CFArrayRef)colors, locations);
+	CGColorSpaceRelease(space);
+	
+	// Setup complete, do drawing here
+	CGContextDrawRadialGradient(context, ret, kCenter, 0, kCenter, size.width/2, kCGGradientDrawsAfterEndLocation);
+	
+	// Drawing complete, retrieve the finished image and cleanup
+	UIImage *Imageref = UIGraphicsGetImageFromCurrentImageContext();
+	SKTexture *texture = [SKTexture textureWithImage:Imageref];
+	background = [SKSpriteNode spriteNodeWithTexture:texture];
+	// Add background to screen
 	[self addChild:background];
 	background.position = kCenter;
+	background.zPosition = -1;
+	UIGraphicsEndImageContext();
 	
 	//init enemy array
 	_bacteria = [[NSMutableArray alloc] init];
@@ -265,6 +303,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 			
 				[_player changeRadius:playerChangeAmt];
 				[bacteria changeRadius:enemyChangeAmt];
+#warning need to fix to change with scale increase
 				[self changeScore:_score+(playerChangeAmt*kScoreDivider)];
 			}
 			

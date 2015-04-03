@@ -61,7 +61,8 @@ typedef enum {
 {
 	self.sprite = [SKShapeNode shapeNodeWithCircleOfRadius:self.radius];
 	self.sprite.fillColor = self.color;
-	self.sprite.strokeColor = [UIColor clearColor];
+	self.sprite.strokeColor = [UIColor blackColor];
+	//self.sprite.
 	self.sprite.zPosition = kDrawingOrderCell;
 	self.curVelocity = CGPointZero;
 	[self addChild:self.sprite];
@@ -196,7 +197,8 @@ typedef enum {
 	//update sprite
 	self.sprite = [SKShapeNode shapeNodeWithCircleOfRadius:self.radius];
 	self.sprite.fillColor = self.color;
-	self.sprite.strokeColor = [UIColor clearColor];
+	self.sprite.strokeColor = [UIColor blackColor];
+	self.sprite.lineWidth = 0.5;
 	[self addChild:self.sprite];
 	//update emitter
 	self.insideCell.particleSpeedRange = self.radius;
