@@ -18,14 +18,14 @@ BOOL isUpdatingScale;
 
 //initial values and constant values
 static CGFloat const kInitialMaxCellSpeed = 300.0; // per second
-static CGFloat const kInitialCellRadius = 15.0;
+static CGFloat const kInitialCellRadius = 0.05;//percent screen height
 
 
 //constants
 static CGFloat const kMaxEnemies = 5;
 static CGFloat const kMinSpawnTime = 2;
-static CGFloat const kMaxPlayerSize = 80; //screan dementions
-static CGFloat const kMinCellSize = 2; //screen dementions
+static CGFloat const kMaxPlayerSize = 0.25; //radius divided by screen size
+static CGFloat const kMinCellSize = 0.005; //screen dementions
 static CGFloat const kPlayScaleChange = kInitialCellRadius/kMaxPlayerSize;
 static CGFloat const kPlayScalePerSec = 0.5;
 static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 1000000 μm
@@ -78,7 +78,22 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 
 +(CGFloat)getMaxCharacterSize
 {
-	return kMaxPlayerSize;
+	return kMaxPlayerSize*gameScreen.height;
+}
+
+-(CGFloat)getMinCellSize
+{
+	return kMinCellSize*gameScreen.height;
+}
+
+-(CGFloat)getMaxPlayerSize
+{
+	return kMaxPlayerSize*gameScreen.height;
+}
+
+-(CGFloat)getInitialPlayerSize
+{
+	return kInitialCellRadius*gameScreen.height;
 }
 
 -(void)changeScore:(float)newScore
@@ -90,12 +105,13 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 
 #pragma mark Initializers
 //used to make a new game
--(id)initNewGameWithSize:(CGSize)size {
+
+-(id)initEndlessGameWithSize:(CGSize)size {
 	if (self = [super initWithSize:size]) {
 		[self initConstants:size];
 		
 		//create player
-		_player = [[Cell alloc] initPlayer:kInitialCellRadius withSpeedOf:kInitialMaxCellSpeed];
+		_player = [[Cell alloc] initPlayer:[self getInitialPlayerSize] withSpeedOf:kInitialMaxCellSpeed];
 		[self addChild:_player];
 		[_player setPosition:kCenter];
 		_player.seekPoint = kCenter;
@@ -105,29 +121,58 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 		
 		//start score
 		_maxScore = 0;
-		[self changeScore:_player.radius*kScoreDivider];
+		[self changeScore:15*kScoreDivider];
 	}
 	return self;
 }
 
+-(id)initTimedGameWithSize:(CGSize)size
+{
+	if (self = [super initWithSize:size]) {
+		[self initConstants:size];
+		
+		//create player
+		_player = [[Cell alloc] initPlayer:[self getInitialPlayerSize] withSpeedOf:kInitialMaxCellSpeed];
+		[self addChild:_player];
+		[_player setPosition:kCenter];
+		_player.seekPoint = kCenter;
+		_playerEatSpeed = 5.0;
+		//enemy starting stats
+		_enemyEatSpeed = 2.0;
+		
+		//start score
+		_maxScore = 0;
+		[self changeScore:15*kScoreDivider];
+	}
+	return self;
+}
+
+//initializes various variables that are needed for gameplay
 -(void)initConstants:(CGSize)size
 {
 	_lastTime = (double)CFAbsoluteTimeGetCurrent();
 	gameScreen = size;
 	kCenter = CGPointMake(gameScreen.width/2, gameScreen.height/2);
+	_numZoomOuts = 0;
 	
 	//create background
+	[self loadBackground];
 	
-	//old background
-	//background = [[SKSpriteNode alloc] initWithColor:[UIColor redColor] size:gameScreen];
-	//[self addChild:background];
-	//background.position = kCenter;
 	
+	//init enemy array
+	_bacteria = [[NSMutableArray alloc] init];
+	_lastSpawn = 0;
+	self.gameOver = NO;
+	
+}
+
+//creates a gradiant background for the game
+-(void)loadBackground
+{
 	//get context
-	CGRect bounds = CGRectMake(0, 0, size.width, size.height);
 	bool opaque = NO;
 	CGFloat scale= 0;
-	UIGraphicsBeginImageContextWithOptions(size, opaque, scale);
+	UIGraphicsBeginImageContextWithOptions(gameScreen, opaque, scale);
 	CGContextRef context = UIGraphicsGetCurrentContext();
 	
 	// Create the colors
@@ -147,7 +192,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	CGColorSpaceRelease(space);
 	
 	// Setup complete, do drawing here
-	CGContextDrawRadialGradient(context, ret, kCenter, 0, kCenter, size.width/2, kCGGradientDrawsAfterEndLocation);
+	CGContextDrawRadialGradient(context, ret, kCenter, 0, kCenter, gameScreen.width/2.3, kCGGradientDrawsAfterEndLocation);
 	
 	// Drawing complete, retrieve the finished image and cleanup
 	UIImage *Imageref = UIGraphicsGetImageFromCurrentImageContext();
@@ -158,14 +203,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	background.position = kCenter;
 	background.zPosition = -1;
 	UIGraphicsEndImageContext();
-	
-	//init enemy array
-	_bacteria = [[NSMutableArray alloc] init];
-	_lastSpawn = 0;
-	self.gameOver = NO;
-	
 }
-
 
 #pragma mark Update
 -(void)update:(CFTimeInterval)currentTime {
@@ -175,7 +213,9 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	CGFloat dt = time - _lastTime;
 	_lastTime = time;
 	
+	
 	[self updatePlayer:dt];
+	
 	[self updateEnemies:dt];
 
 	[self handleCollisions:dt];
@@ -184,19 +224,36 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	
 }
 
+//allows the plaeyr to move and checks for player end game
 -(void)updatePlayer:(CGFloat)dt
 {
 	[_player playerUpdate];
 	
 	[_player MoveToSeekPoint:dt];
-
-	if(_player.radius < kMinCellSize)
+	
+	//if player is too small, end the game
+	if(_player.radius < [self getMinCellSize])
+	{
+		[self endGame];
+	}
+	//if all enemies are larger, end the game
+	int largerEnemies = 0;
+	for(int i = 0; i < _bacteria.count; i++)
+	{
+		Bacteria *bacteria = _bacteria[i];
+		if(bacteria.radius > _player.radius)
+		{
+			largerEnemies++;
+		}
+	}
+	if(largerEnemies == kMaxEnemies)
 	{
 		[self endGame];
 	}
 	
 }
 
+//updates enemies movement and spawns new enemies
 -(void)updateEnemies:(CGFloat)dt
 {
 	//move enemies
@@ -208,7 +265,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 		[bacteria MoveToSeekPoint:dt];
 		
 		//check if this one needs to be deleted
-		if(bacteria.radius < kMinCellSize)
+		if(bacteria.radius < [self getMinCellSize])
 		{
 			[bacteria removeFromParent];
 			[_bacteria removeObjectAtIndex:i];
@@ -223,6 +280,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 		if(_lastSpawn >= kMinSpawnTime)
 		{
 			//get the max speed of the enemy
+#warning need to change enemy speed based on difficulty
 			CGFloat enemySpeed = kInitialMaxCellSpeed/2;
 			//make an enemy
 			Bacteria *newEnemy = [[Bacteria alloc] initEnemy:[self getRandomEnemySize] withSpeedof:enemySpeed];
@@ -234,9 +292,10 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 			_lastSpawn = 0;
 		}
 	}
+#warning need to change enemy eat speed based on difficulty
 }
 
-
+//will change the screen size and give zoom out effect
 -(void)updatePlayScale:(CGFloat)dt
 {
 	if(isUpdatingScale)
@@ -261,12 +320,14 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	}
 	else
 	{
-		if(_player.radius > kMaxPlayerSize)
+		
+		if(_player.radius > [self getMaxPlayerSize])
 		{
 			zoombar = [SKShapeNode shapeNodeWithRect:CGRectMake(0, 0, gameScreen.width, gameScreen.height)];
 			zoombar.fillColor = [SKColor clearColor];
 			zoombar.strokeColor = [SKColor blackColor];
 			[self addChild:zoombar];
+			_numZoomOuts++;
 			isUpdatingScale = YES;
 		}
 	}
@@ -303,8 +364,10 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 			
 				[_player changeRadius:playerChangeAmt];
 				[bacteria changeRadius:enemyChangeAmt];
-#warning need to fix to change with scale increase
-				[self changeScore:_score+(playerChangeAmt*kScoreDivider)];
+				
+				//change speed of score to correlate with actual size (roughly)
+				float ScaleFix = (_numZoomOuts>0)? (1/kPlayScaleChange * _numZoomOuts): 1;
+				[self changeScore:_score+(playerChangeAmt*kScoreDivider*ScaleFix)];
 			}
 			
 			//collision
@@ -334,6 +397,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	}
 }
 
+//checks if a collision is currently happening
 -(BOOL)checkCollide:(Cell *)cellOne with:(Cell *)cellTwo
 {
 	CGPoint distanceVec = CGPointSubtract(cellOne.position, cellTwo.position);
@@ -348,6 +412,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	return NO;
 }
 
+//moves cells if a collision happened
 -(void)collide:(Cell *)cellOne with:(Cell *)cellTwo
 {
 	CGPoint vectorBetween = CGPointSubtract(cellTwo.position,cellOne.position);
@@ -364,6 +429,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 
 
 #pragma mark Change cells
+//changes the player seek point to make sure the player stays entirely on-screen
 -(void)changePlayerSeek:(CGPoint)seek
 {
 	//keep the character on the screen
@@ -389,6 +455,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	_player.seekPoint = seek;
 }
 
+//creates a random enemy size based on player size
 -(CGFloat)getRandomEnemySize
 {
 	CGFloat newEnemySize;
@@ -417,6 +484,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 }
 
 #pragma mark end game
+//used to interact with the view controller to remove the game screen
 -(void)endGame
 {
 	self.gameOver = YES;

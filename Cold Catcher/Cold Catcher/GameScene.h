@@ -13,6 +13,7 @@
 @property (nonatomic, assign) float score; //size in meters
 @property (nonatomic, assign) float maxScore; //max size in meters
 @property (nonatomic, assign) BOOL gameOver;
+@property (nonatomic, assign) float numZoomOuts;
 
 +(void)changePlayScale:(CGFloat)newScale;
 +(CGFloat)getScale;
@@ -23,7 +24,8 @@
 
 -(void)changeScore:(float)newScore;
 
--(id)initNewGameWithSize:(CGSize)size;
+-(id)initEndlessGameWithSize:(CGSize)size;
+-(id)initTimedGameWithSize:(CGSize)size;
 
 -(void)pauseGame;
 -(void)playGame;

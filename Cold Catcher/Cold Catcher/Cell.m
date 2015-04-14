@@ -12,7 +12,7 @@
 #import "Utils.h"
 
 static CGFloat const kAccel = 1; //percent of max speed to accelerate each second
-static CGFloat const kMaxInsideCellSize = 0.4; //used for particles size
+//static CGFloat const kMaxInsideCellSize = 0.4; //used for particles size
 
 typedef enum {
 	kDrawingOrderCell,
@@ -69,13 +69,13 @@ typedef enum {
 	self.adjustedRadius = self.radius;
 	
 	//new emitter
-	NSString *particlePath = [[NSBundle mainBundle] pathForResource:@"InsideCell" ofType:@"sks"];
+	/*NSString *particlePath = [[NSBundle mainBundle] pathForResource:@"InsideCell" ofType:@"sks"];
 	self.insideCell = [NSKeyedUnarchiver unarchiveObjectWithFile:particlePath];
 	self.insideCell.position = CGPointMake(0, 0);
 	self.insideCell.zPosition = kDrawingOrderParticle;
 	self.insideCell.name = @"particles";
 	[self addChild:self.insideCell];
-	
+	*/
 	[self updateSprite];
 }
 
@@ -198,13 +198,15 @@ typedef enum {
 	self.sprite = [SKShapeNode shapeNodeWithCircleOfRadius:self.radius];
 	self.sprite.fillColor = self.color;
 	self.sprite.strokeColor = [UIColor blackColor];
-	self.sprite.lineWidth = 0.5;
+	self.sprite.lineWidth = 1;
 	[self addChild:self.sprite];
+	
 	//update emitter
-	self.insideCell.particleSpeedRange = self.radius;
+	/*self.insideCell.particleSpeedRange = self.radius;
 	CGFloat sizePercentage = self.radius / [GameScene getMaxCharacterSize];
 	self.insideCell.particleScale = kMaxInsideCellSize * sizePercentage;
 	self.insideCell.particleScaleSpeed = -1 * (kMaxInsideCellSize * sizePercentage /4);
+	*/
 }
 
 @end

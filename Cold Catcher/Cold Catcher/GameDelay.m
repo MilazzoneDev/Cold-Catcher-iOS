@@ -44,7 +44,7 @@
 		delayMessage.text = @"";
 		[delayTimer invalidate];
 		delayTimer = nil;
-		self.DelayFinished = YES;
+		self.delayFinished = YES;
 	}
 }
 

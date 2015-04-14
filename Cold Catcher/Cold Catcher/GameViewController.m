@@ -82,17 +82,26 @@ typedef struct
 	menu.scaleMode = SKSceneScaleModeAspectFill;
 	
 	// set up key-value-observers for menu
-	[menu addObserver:self forKeyPath:@"newGamePressed" options:NSKeyValueObservingOptionNew context:nil];
+	[menu addObserver:self forKeyPath:@"timedGamePressed" options:NSKeyValueObservingOptionNew context:nil];
+	[menu addObserver:self forKeyPath:@"endlessGamePressed" options:NSKeyValueObservingOptionNew context:nil];
 	
 	// Present the scene.
 	[skView presentScene:menu];
 }
 
 //loads a new GameScene and presents it (along with a delayed start)
--(void)initializeNewGame
+//isTimed = timed vs endless game
+-(void)initializeGame:(BOOL)isTimed
 {
 	//load and init the game
-	game = [[GameScene alloc]initNewGameWithSize:skView.frame.size];
+	if(isTimed)
+	{
+		game = [[GameScene alloc]initTimedGameWithSize:skView.frame.size];
+	}
+	else
+	{
+		game = [[GameScene alloc]initEndlessGameWithSize:skView.frame.size];
+	}
 	game.scaleMode = SKSceneScaleModeAspectFill;
 	SKTransition *reveal = [SKTransition flipHorizontalWithDuration:0.5];
 	
@@ -133,9 +142,14 @@ typedef struct
 {
 	//MENU
 	//did we want to start a new game
-	if([keyPath isEqualToString:@"newGamePressed"])
+	if([keyPath isEqualToString:@"timedGamePressed"])
 	{
-		[self initializeNewGame];
+		[self initializeGame:YES];
+		[self removeMainMenu];
+	}
+	if([keyPath isEqualToString:@"endlessGamePressed"])
+	{
+		[self initializeGame:NO];
 		[self removeMainMenu];
 	}
 	
@@ -189,8 +203,6 @@ typedef struct
 }
 
 #pragma mark other game controls and labels
-
-
 -(void)loadOtherControls
 {
 	//options control
@@ -275,21 +287,6 @@ typedef struct
 							 _iAd.delegate = self;
 							 //NSLog(@"finished2");
 						 }];
-		
-		//flip page (for fun XD )
-		/*_options.frame = CGRectMake(optionsXPosition, optionsOnYPosition, _options.frame.size.width , _options.frame.size.height);
-		 [UIView animateWithDuration:0.5f
-		 delay:0.0f
-		 options:UIViewAnimationOptionTransitionNone
-		 animations:^{
-		 //_options.frame = CGRectMake(optionsXPosition, optionsOnYPosition, _options.frame.size.width , _options.frame.size.height);
-		 [UIView setAnimationTransition:UIViewAnimationTransitionCurlDown forView:_options cache:NO];
-		 
-		 }
-		 completion:^(BOOL finished) {
-		 
-		 }];
-		 */
 	}
 	else
 	{
@@ -325,25 +322,6 @@ typedef struct
 							 [game playGame];
 							 options.hidden = YES;
 						 }];
-		
-		//flip page (for fun XD )
-		/*[UIView animateWithDuration:0.5f
-		 delay:0.0f
-		 options:UIViewAnimationOptionTransitionNone
-		 animations:^{
-		 [UIView setAnimationTransition:UIViewAnimationTransitionCurlUp forView:_options cache:NO];
-		 _options.hidden = YES;
-		 
-		 }
-		 completion:^(BOOL finished) {
-		 _options.frame = CGRectMake(optionsXPosition, optionsOffYPosition, _options.frame.size.width , _options.frame.size.height);
-		 _options.hidden = NO;
-		 [_optionControl setUserInteractionEnabled:YES];
-		 [_scene playGame];
-		 }];
-		 */
-		//[_optionControl setUserInteractionEnabled:YES];
-		
 	}
 }
 
@@ -466,7 +444,8 @@ typedef struct
 #pragma mark cleanup methods
 -(void)removeMainMenu
 {
-	[menu removeObserver:self forKeyPath:@"newGamePressed"];
+	[menu removeObserver:self forKeyPath:@"timedGamePressed"];
+	[menu removeObserver:self forKeyPath:@"endlessGamePressed"];
 	menu = nil;
 }
 -(void)removeGame
@@ -567,7 +546,8 @@ typedef struct
 	{
 		if(menu)
 		{
-			[menu removeObserver:self forKeyPath:@"newGamePressed"];
+			[menu removeObserver:self forKeyPath:@"timedGamePressed"];
+			[menu removeObserver:self forKeyPath:@"endlessGamePressed"];
 		}
 		if(optionControl)
 		{

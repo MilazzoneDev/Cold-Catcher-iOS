@@ -10,7 +10,9 @@
 
 @interface GameMenu : SKScene
 
-@property (nonatomic, assign) BOOL newGamePressed;
-@property (nonatomic, assign) BOOL oldGamePressed;
+@property (nonatomic, assign) BOOL timedGamePressed;
+@property (nonatomic, assign) BOOL endlessGamePressed;
+@property (nonatomic, assign) BOOL highScoresPressed;
+@property (nonatomic, assign) BOOL optionsPressed;
 
 @end
