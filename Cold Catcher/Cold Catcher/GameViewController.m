@@ -41,6 +41,7 @@ typedef struct
 	OptionsButton *optionControl;
 	UILabel *scoreLabel;
 	UILabel *scoreLabel2;
+	UILabel *timerLabel;
 	
 	//views
 	SKView *skView;
@@ -84,9 +85,13 @@ typedef struct
 	// set up key-value-observers for menu
 	[menu addObserver:self forKeyPath:@"timedGamePressed" options:NSKeyValueObservingOptionNew context:nil];
 	[menu addObserver:self forKeyPath:@"endlessGamePressed" options:NSKeyValueObservingOptionNew context:nil];
+	[menu addObserver:self forKeyPath:@"optionsScreenPressed" options:NSKeyValueObservingOptionNew context:nil];
+	[menu addObserver:self forKeyPath:@"highScoresPressed" options:NSKeyValueObservingOptionNew context:nil];
 	
 	// Present the scene.
 	[skView presentScene:menu];
+	
+	[self showAd];
 }
 
 //loads a new GameScene and presents it (along with a delayed start)
@@ -126,6 +131,7 @@ typedef struct
 
 -(void)showGameOver
 {
+#warning need to set up to handle timed mode vs endless mode (currently only handles endless mode properly)
 	//init end game
 	scoreModifier finalModifier = [self scoreFixer:[game maxScore]];
 	endGame = [[GameOver alloc] initWithSize:skView.frame.size finalScore:finalModifier.number withModifier:finalModifier.character];
@@ -152,6 +158,16 @@ typedef struct
 		[self initializeGame:NO];
 		[self removeMainMenu];
 	}
+#warning finish buttons
+	if([keyPath isEqualToString:@"optionsScreenPressed"])
+	{
+		//stub
+	}
+	if([keyPath isEqualToString:@"highScoresPressed"])
+	{
+		//stub
+	}
+	
 	
 	//OPTIONS
 	//did we want to open the options menu
@@ -189,6 +205,14 @@ typedef struct
 		{
 			[self showGameOver];
 			[self removeGame];
+		}
+	}
+	//update time if in timed mode
+	if([keyPath isEqualToString:@"gameTime"])
+	{
+		if(game.isTimed)
+		{
+			[self updateTimer];
 		}
 	}
 	
@@ -230,6 +254,17 @@ typedef struct
 	scoreLabel2.numberOfLines = 0;
 	[self.view addSubview:scoreLabel2];
 	
+	if(game.isTimed)
+	{
+		timerLabel = [[UILabel alloc] init];
+		timerLabel.font = [UIFont fontWithName:@"Helvetica" size:14];
+		timerLabel.textColor = [UIColor darkGrayColor];
+		timerLabel.frame = CGRectMake(0, scoreLabel.frame.size.height, [GameScene getScreenSize].width, 14);
+		timerLabel.textAlignment = NSTextAlignmentCenter;
+		timerLabel.numberOfLines = 0;
+		[self.view addSubview:timerLabel];
+	}
+	
 	[self updateScore];
 	
 	//key value observer for score
@@ -237,6 +272,9 @@ typedef struct
 	
 	//key value observer for game over
 	[game addObserver:self forKeyPath:@"gameOver" options:NSKeyValueObservingOptionNew context:nil];
+	
+	//key value observer for timer
+	[game addObserver:self forKeyPath:@"gameTime" options:NSKeyValueObservingOptionNew context:nil];
 }
 
 -(void)setUpOptions
@@ -279,32 +317,14 @@ typedef struct
 							 
 						 }
 						 completion:^(BOOL finished) {
-							 //Taller iAd
-							 //_iAd = [[ADBannerView alloc] initWithFrame:CGRectMake(self.view.frame.size.width/2, self.view.frame.size.height, 320, 100)];
-							 //_iAd.frame = CGRectOffset(_iAd.frame, -_iAd.frame.size.width/2, 0);
-							 //Wider iAd
-							 _iAd = [[ADBannerView alloc] initWithFrame:CGRectMake(0, self.view.frame.size.height, self.view.frame.size.width, 100)];
-							 _iAd.delegate = self;
+							 [self showAd];
 							 //NSLog(@"finished2");
 						 }];
 	}
 	else
 	{
 		//clear iAd
-		[UIView animateWithDuration:0.2f
-							  delay:0.0f
-							options:UIViewAnimationOptionTransitionNone
-						 animations:^{
-							 _iAd.frame = CGRectOffset(_iAd.frame, 0, _iAd.frame.size.height);
-						 }
-						 completion:^(BOOL finished) {
-							 // Assumes the banner view is placed at the bottom of the screen.
-							 _iAd.frame = CGRectOffset(_iAd.frame, 0, _iAd.frame.size.height);
-							 [_iAd removeFromSuperview];
-							 _iAd.delegate = nil;
-							 _iAd = nil;
-							 _bannerIsVisible = NO;
-						 }];
+		[self removeAd];
 		
 		
 		//NOTE: Make sure to enable the _optionControl on completion, otherwise if pressed before completion the screen won't come back
@@ -336,6 +356,14 @@ typedef struct
 	
 	scoreLabel.text = [NSString stringWithFormat:@"Max Score: %.2f%@",maxScoreModified.number,maxScoreModified.character];
 	scoreLabel2.text = [NSString stringWithFormat:@"Score:%.2f%@",scoreModified.number,scoreModified.character];
+}
+
+-(void)updateTimer
+{
+	float time = game.gameTime;
+	int minutes = time / 60;
+	float seconds = (time-(minutes*60));
+	timerLabel.text = [NSString stringWithFormat:@"%d:%.1f",minutes,seconds];
 }
 
 -(scoreModifier)scoreFixer:(float)score
@@ -377,29 +405,61 @@ typedef struct
 }
 
 #pragma mark ADBannerView methods
+-(void)showAd
+{
+	//Taller iAd
+	//_iAd = [[ADBannerView alloc] initWithFrame:CGRectMake(self.view.frame.size.width/2, self.view.frame.size.height, 320, 100)];
+	//_iAd.frame = CGRectOffset(_iAd.frame, -_iAd.frame.size.width/2, 0);
+	//Wider iAd
+	_iAd = [[ADBannerView alloc] initWithFrame:CGRectMake(0, self.view.frame.size.height, self.view.frame.size.width, 100)];
+	_iAd.delegate = self;
+}
+
+-(void)removeAd
+{
+	[UIView animateWithDuration:0.2f
+						  delay:0.0f
+						options:UIViewAnimationOptionTransitionNone
+					 animations:^{
+						 _iAd.frame = CGRectOffset(_iAd.frame, 0, _iAd.frame.size.height);
+					 }
+					 completion:^(BOOL finished) {
+						 // Assumes the banner view is placed at the bottom of the screen.
+						 _iAd.frame = CGRectOffset(_iAd.frame, 0, _iAd.frame.size.height);
+						 [_iAd removeFromSuperview];
+						 _iAd.delegate = nil;
+						 _iAd = nil;
+						 _bannerIsVisible = NO;
+					 }];
+}
+
 - (void)bannerViewDidLoadAd:(ADBannerView *)banner
 {
 	if (!_bannerIsVisible)
 	{
-		//move the options menu up a tad
-		[UIView animateWithDuration:0.1f
-							  delay:0.0f
-							options:UIViewAnimationOptionTransitionNone
-						 animations:^{
-							 //used if the tall iAd is used
-							 //_options.frame = CGRectOffset(_options.frame, 0, -padPadding*1.5);
+		if(game != nil)
+		{
+			//move the options menu up a tad
+			[UIView animateWithDuration:0.1f
+								delay:0.0f
+								options:UIViewAnimationOptionTransitionNone
+							animations:^{
+								//used if the tall iAd is used
+								//_options.frame = CGRectOffset(_options.frame, 0, -padPadding*1.5);
 							 
-						 }
-						 completion:^(BOOL finished) {
+							}
+							completion:^(BOOL finished) {
 							 
-						 }];
-		
+							}];
+		}
 		// If banner isn't part of view hierarchy, add it
 		if (_iAd.superview == nil)
 		{
 			[self.view addSubview:_iAd];
 		}
 		
+		
+		//animates the banner ad
 		[UIView beginAnimations:@"animateAdBannerOn" context:NULL];
 		
 		// Assumes the banner view is just off the bottom of the screen.
@@ -417,19 +477,23 @@ typedef struct
 	
 	if (_bannerIsVisible)
 	{
-		//move the options menu down a tad
-		[UIView animateWithDuration:0.1f
-							  delay:0.0f
-							options:UIViewAnimationOptionTransitionNone
-						 animations:^{
-							 //used if the tall iAd is used
-							 //_options.frame = CGRectOffset(_options.frame, 0, padPadding*1.5);
+		if(game != nil)
+		{
+			//move the options menu down a tad
+			[UIView animateWithDuration:0.1f
+								  delay:0.0f
+								options:UIViewAnimationOptionTransitionNone
+							 animations:^{
+								 //used if the tall iAd is used
+								 //_options.frame = CGRectOffset(_options.frame, 0, padPadding*1.5);
 							 
-						 }
-						 completion:^(BOOL finished) {
+							 }
+							 completion:^(BOOL finished) {
 							 
-						 }];
+							 }];
+		}
 		
+		//animates the banner add
 		[UIView beginAnimations:@"animateAdBannerOff" context:NULL];
 		
 		// Assumes the banner view is placed at the bottom of the screen.
@@ -446,6 +510,10 @@ typedef struct
 {
 	[menu removeObserver:self forKeyPath:@"timedGamePressed"];
 	[menu removeObserver:self forKeyPath:@"endlessGamePressed"];
+	[menu removeObserver:self forKeyPath:@"optionsScreenPressed"];
+	[menu removeObserver:self forKeyPath:@"highScoresPressed"];
+	
+	[self removeAd];
 	menu = nil;
 }
 -(void)removeGame
@@ -453,6 +521,7 @@ typedef struct
 	//clearKeyValueObservers
 	[game removeObserver:self forKeyPath:@"score"];
 	[game removeObserver:self forKeyPath:@"gameOver"];
+	[game removeObserver:self forKeyPath:@"gameTime"];
 	
 	//remove the options button
 	[optionControl removeFromSuperview];
@@ -464,6 +533,11 @@ typedef struct
 	scoreLabel = nil;
 	[scoreLabel2 removeFromSuperview];
 	scoreLabel2 = nil;
+	if(game.isTimed)
+	{
+		[timerLabel removeFromSuperview];
+		timerLabel = nil;
+	}
 	
 	//remove the options menu
 	[options removeObserver:self forKeyPath:@"donePressed"];
@@ -548,6 +622,8 @@ typedef struct
 		{
 			[menu removeObserver:self forKeyPath:@"timedGamePressed"];
 			[menu removeObserver:self forKeyPath:@"endlessGamePressed"];
+			[menu removeObserver:self forKeyPath:@"optionsScreenPressed"];
+			[menu removeObserver:self forKeyPath:@"highScoresPressed"];
 		}
 		if(optionControl)
 		{
@@ -561,6 +637,7 @@ typedef struct
 		{
 			[game removeObserver:self forKeyPath:@"score"];
 			[game removeObserver:self forKeyPath:@"gameOver"];
+			[game removeObserver:self forKeyPath:@"gameTime"];
 		}
 		if(endGame)
 		{

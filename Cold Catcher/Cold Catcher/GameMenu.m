@@ -58,8 +58,8 @@ static float const padding = 5;
 		//add buttons
 		CGSize buttonSize = CGSizeMake(180,60);
 		CGFloat xOffset = halfWidth*2/5;
-		CGFloat yTopOffset = buttonSize.height/2;
-		CGFloat yBottomOffset = buttonSize.height*3/2+padding*2;
+		CGFloat yTopOffset = buttonSize.height/2-(buttonSize.height/2);
+		CGFloat yBottomOffset = buttonSize.height*3/2+padding*2-(buttonSize.height/2);
 		//time attack mode
 		timeAttack = [self CreateButtonWithSize:buttonSize andText:@"Time Attack"];
 		timeAttack.position = CGPointMake(kCenter.x - xOffset, kCenter.y-yTopOffset);
@@ -143,7 +143,7 @@ static float const padding = 5;
 		}
 		if(CGRectContainsPoint([optionsButton frame], touchPoint) && options)
 		{
-			self.optionsPressed = YES;
+			self.optionsScreenPressed = YES;
 		}
 	}
 	

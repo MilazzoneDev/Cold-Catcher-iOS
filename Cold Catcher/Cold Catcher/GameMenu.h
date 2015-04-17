@@ -13,6 +13,6 @@
 @property (nonatomic, assign) BOOL timedGamePressed;
 @property (nonatomic, assign) BOOL endlessGamePressed;
 @property (nonatomic, assign) BOOL highScoresPressed;
-@property (nonatomic, assign) BOOL optionsPressed;
+@property (nonatomic, assign) BOOL optionsScreenPressed;
 
 @end

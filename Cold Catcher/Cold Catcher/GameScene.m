@@ -24,16 +24,18 @@ static CGFloat const kInitialCellRadius = 0.05;//percent screen height
 //constants
 static CGFloat const kMaxEnemies = 5;
 static CGFloat const kMinSpawnTime = 2;
+static CGFloat const kTimedEndGame = 0.01; //1cm = 0.01m
 static CGFloat const kMaxPlayerSize = 0.25; //radius divided by screen size
 static CGFloat const kMinCellSize = 0.005; //screen dementions
 static CGFloat const kPlayScaleChange = kInitialCellRadius/kMaxPlayerSize;
 static CGFloat const kPlayScalePerSec = 0.5;
-static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 1000000 μm
+static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1000000μm
+
 
 
 @implementation GameScene
 {
-	//time used for update
+	//time used to find dt (change in time between frames)
 	double _lastTime;
 	//time last enemy was spawned
 	double _lastSpawn;
@@ -107,49 +109,48 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 //used to make a new game
 
 -(id)initEndlessGameWithSize:(CGSize)size {
-	if (self = [super initWithSize:size]) {
-		[self initConstants:size];
-		
-		//create player
-		_player = [[Cell alloc] initPlayer:[self getInitialPlayerSize] withSpeedOf:kInitialMaxCellSpeed];
-		[self addChild:_player];
-		[_player setPosition:kCenter];
-		_player.seekPoint = kCenter;
-		_playerEatSpeed = 5.0;
-		//enemy starting stats
-		_enemyEatSpeed = 2.0;
-		
-		//start score
-		_maxScore = 0;
-		[self changeScore:15*kScoreDivider];
+	
+	if(self = [super initWithSize:size])
+	{
+		[self initGame:size];
+		self.isTimed = NO;
 	}
 	return self;
 }
 
 -(id)initTimedGameWithSize:(CGSize)size
 {
-	if (self = [super initWithSize:size]) {
-		[self initConstants:size];
-		
-		//create player
-		_player = [[Cell alloc] initPlayer:[self getInitialPlayerSize] withSpeedOf:kInitialMaxCellSpeed];
-		[self addChild:_player];
-		[_player setPosition:kCenter];
-		_player.seekPoint = kCenter;
-		_playerEatSpeed = 5.0;
-		//enemy starting stats
-		_enemyEatSpeed = 2.0;
-		
-		//start score
-		_maxScore = 0;
-		[self changeScore:15*kScoreDivider];
+	if(self = [super initWithSize:size])
+	{
+		[self initGame:size];
+		self.isTimed = YES;
+		self.gameTime = 0.0;
 	}
 	return self;
+}
+
+-(void)initGame:(CGSize)size
+{
+
+	[self initConstants:size];
+	//create player
+	_player = [[Cell alloc] initPlayer:[self getInitialPlayerSize] withSpeedOf:kInitialMaxCellSpeed];
+	[self addChild:_player];
+	[_player setPosition:kCenter];
+	_player.seekPoint = kCenter;
+	_playerEatSpeed = 25.0; //5
+	//enemy starting stats
+	_enemyEatSpeed = 2.0;
+	
+	//start score
+	_maxScore = 0;
+	[self changeScore:15*kScoreDivider];
 }
 
 //initializes various variables that are needed for gameplay
 -(void)initConstants:(CGSize)size
 {
+	
 	_lastTime = (double)CFAbsoluteTimeGetCurrent();
 	gameScreen = size;
 	kCenter = CGPointMake(gameScreen.width/2, gameScreen.height/2);
@@ -222,6 +223,10 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	
 	[self updatePlayScale:dt];
 	
+	[self checkEndGame];
+	
+	[self updateTime:dt];
+	
 }
 
 //allows the plaeyr to move and checks for player end game
@@ -230,27 +235,6 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	[_player playerUpdate];
 	
 	[_player MoveToSeekPoint:dt];
-	
-	//if player is too small, end the game
-	if(_player.radius < [self getMinCellSize])
-	{
-		[self endGame];
-	}
-	//if all enemies are larger, end the game
-	int largerEnemies = 0;
-	for(int i = 0; i < _bacteria.count; i++)
-	{
-		Bacteria *bacteria = _bacteria[i];
-		if(bacteria.radius > _player.radius)
-		{
-			largerEnemies++;
-		}
-	}
-	if(largerEnemies == kMaxEnemies)
-	{
-		[self endGame];
-	}
-	
 }
 
 //updates enemies movement and spawns new enemies
@@ -333,6 +317,42 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 	}
 }
 
+-(void)checkEndGame
+{
+	//if player is too small, end the game
+	if(_player.radius < [self getMinCellSize])
+	{
+		[self endGame];
+	}
+	//if all enemies are larger, end the game
+	int largerEnemies = 0;
+	for(int i = 0; i < _bacteria.count; i++)
+	{
+		Bacteria *bacteria = _bacteria[i];
+		if(bacteria.radius > _player.radius)
+		{
+			largerEnemies++;
+		}
+	}
+	if(largerEnemies == kMaxEnemies)
+	{
+		[self endGame];
+	}
+	//if it's a timed game check if they have reched the end game
+	if(_isTimed && ([self maxScore] >= kTimedEndGame))
+	{
+		[self endGame];
+	}
+}
+
+-(void)updateTime:(CGFloat)dt
+{
+	if(self.isTimed)
+	{
+		self.gameTime += dt;
+	}
+}
+
 #pragma mark collision
 -(void)handleCollisions:(CGFloat)dt
 {
@@ -364,7 +384,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1 m = 
 			
 				[_player changeRadius:playerChangeAmt];
 				[bacteria changeRadius:enemyChangeAmt];
-				
+#warning still not correctly adding more score for larger sizes
 				//change speed of score to correlate with actual size (roughly)
 				float ScaleFix = (_numZoomOuts>0)? (1/kPlayScaleChange * _numZoomOuts): 1;
 				[self changeScore:_score+(playerChangeAmt*kScoreDivider*ScaleFix)];
