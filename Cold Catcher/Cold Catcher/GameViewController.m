@@ -134,7 +134,16 @@ typedef struct
 #warning need to set up to handle timed mode vs endless mode (currently only handles endless mode properly)
 	//init end game
 	scoreModifier finalModifier = [self scoreFixer:[game maxScore]];
-	endGame = [[GameOver alloc] initWithSize:skView.frame.size finalScore:finalModifier.number withModifier:finalModifier.character];
+	if(game.isTimed)
+	{
+		BOOL didWin = ([game maxScore]>=[GameScene getMaxTimeAttackSize]? true : false);
+		endGame = [[GameOver alloc] initWithSize:skView.frame.size finalTime:[game gameTime] didWin:didWin];
+	}
+	else
+	{
+		
+		endGame = [[GameOver alloc] initWithSize:skView.frame.size finalScore:finalModifier.number withModifier:finalModifier.character];
+	}
 	SKTransition *reveal = [SKTransition flipHorizontalWithDuration:0.5];
 	[skView presentScene:endGame transition:reveal];
 	

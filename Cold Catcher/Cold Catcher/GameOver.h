@@ -12,6 +12,10 @@
 
 @property (nonatomic, assign) BOOL menuPressed;
 
+//used for time attack mode
+-(id)initWithSize:(CGSize)size finalTime:(float)finalTime didWin:(BOOL)didWin;
+//used for endless mode
 -(id)initWithSize:(CGSize)size finalScore:(float)finalScore withModifier:(NSString *)finalModifier;
+
 
 @end

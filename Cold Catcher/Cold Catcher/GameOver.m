@@ -20,6 +20,50 @@
 	BOOL backToMenu;
 }
 
+#pragma mark Time Attack ending
+-(id)initWithSize:(CGSize)size finalTime:(float)finalTime didWin:(BOOL)didWin;
+{
+	if(self = [super initWithSize:size])
+	{
+		halfHeight = self.size.height/2;
+		halfWidth = self.size.width/2;
+		
+		//background
+		SKSpriteNode *bg;
+		bg = [SKSpriteNode spriteNodeWithColor:[UIColor redColor] size:size];
+		
+		bg.position = CGPointMake(halfWidth, halfHeight);
+		[self addChild:bg];
+		
+		//title
+		[self SetTitle:@"Game Over"];
+		
+		//final score
+		_finalScore = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
+		_finalScore.position = CGPointMake(halfWidth, self.size.height/2);
+		_finalScore.fontSize = 20;
+		_finalScore.fontColor = [UIColor blackColor];
+		int minutes = finalTime / 60;
+		float seconds = (finalTime-(minutes*60));
+		[_finalScore setText:[NSString stringWithFormat:@"final time: %d:%.1f",minutes,seconds]];
+		[self addChild:_finalScore];
+		
+		
+		//touch to continue message
+		_touch = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
+		_touch.position = CGPointMake(halfWidth, self.size.height/3);
+		_touch.fontSize = 20;
+		_touch.fontColor = [UIColor blackColor];
+		[_touch setText:@"(touch to continue)"];
+		[self addChild:_touch];
+		
+		backToMenu = NO;
+	}
+	
+	return self;
+}
+
+#pragma mark Endless mode ending
 -(id)initWithSize:(CGSize)size finalScore:(float)finalScore withModifier:(NSString *)finalModifier
 {
 	if (self = [super initWithSize:size])
@@ -35,12 +79,7 @@
 		[self addChild:bg];
 		
 		//title
-		_Title = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
-		_Title.position = CGPointMake(halfWidth, self.size.height*2/3);
-		_Title.fontSize = 30;
-		_Title.fontColor = [UIColor blackColor];
-		[_Title setText:@"Game Over"];
-		[self addChild:_Title];
+		[self SetTitle:@"Game Over"];
 		
 		//final score
 		_finalScore = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
@@ -63,6 +102,16 @@
 		
 	}
 	return self;
+}
+
+-(void)SetTitle:(NSString*)text
+{
+	_Title = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
+	_Title.position = CGPointMake(halfWidth, self.size.height*2/3);
+	_Title.fontSize = 30;
+	_Title.fontColor = [UIColor blackColor];
+	[_Title setText:text];
+	[self addChild:_Title];
 }
 
 -(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {

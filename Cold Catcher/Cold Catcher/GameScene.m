@@ -83,6 +83,11 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 	return kMaxPlayerSize*gameScreen.height;
 }
 
++(float)getMaxTimeAttackSize
+{
+	return kTimedEndGame;
+}
+
 -(CGFloat)getMinCellSize
 {
 	return kMinCellSize*gameScreen.height;
@@ -214,19 +219,20 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 	CGFloat dt = time - _lastTime;
 	_lastTime = time;
 	
-	
-	[self updatePlayer:dt];
-	
-	[self updateEnemies:dt];
-
-	[self handleCollisions:dt];
-	
-	[self updatePlayScale:dt];
-	
-	[self checkEndGame];
-	
-	[self updateTime:dt];
-	
+	if(![self gameOver])
+	{
+		[self updatePlayer:dt];
+		
+		[self updateEnemies:dt];
+		
+		[self handleCollisions:dt];
+		
+		[self updatePlayScale:dt];
+		
+		[self checkEndGame];
+		
+		[self updateTime:dt];
+	}
 }
 
 //allows the plaeyr to move and checks for player end game

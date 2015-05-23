@@ -23,6 +23,7 @@
 +(CGPoint)getCenter;
 +(CGSize)getScreenSize;
 +(CGFloat)getMaxCharacterSize;
++(float)getMaxTimeAttackSize;
 
 -(void)changeScore:(float)newScore;
 
