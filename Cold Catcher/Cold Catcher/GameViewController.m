@@ -9,6 +9,7 @@
 #import "GameViewController.h"
 #import "GameMenu.h"
 #import "GameScene.h"
+#import "GameUI.h"
 #import "OptionsMenu.h"
 #import "OptionsButton.h"
 #import "GameOver.h"
@@ -21,27 +22,12 @@ static float const padPadding = 10;
 static float const optionsOnYPosition = padPadding*3;
 static float const optionsXPosition = padPadding*3;
 static float optionsOffYPosition; //set in setUpOptions
-//score constants
-static float const kSizeMicrometer = 0.000001;//1μm = 0.000001m
-static float const kSizeMilimeter = 0.001; //1mm = 0.001m
-static float const kSizeCentimeter = 0.01; //1cm = 0.01m
-static float const kSizeMeter = 1;
-static float const kSizeKilometer = 1000; //1000m = 1km
-
-//used to pass correct number and ending for scores
-typedef struct
-{
-	float number;
-	__unsafe_unretained NSString *character;
-}scoreModifier;
 
 @implementation GameViewController
 {
 	//UI
 	OptionsButton *optionControl;
-	UILabel *scoreLabel;
-	UILabel *scoreLabel2;
-	UILabel *timerLabel;
+	GameUI *gameUI;
 	
 	//views
 	SKView *skView;
@@ -131,9 +117,8 @@ typedef struct
 
 -(void)showGameOver
 {
-#warning need to set up to handle timed mode vs endless mode (currently only handles endless mode properly)
 	//init end game
-	scoreModifier finalModifier = [self scoreFixer:[game maxScore]];
+	scoreModifier finalModifier = [GameUI scoreFixer:[game maxScore]];
 	if(game.isTimed)
 	{
 		BOOL didWin = ([game maxScore]>=[GameScene getMaxTimeAttackSize]? true : false);
@@ -141,7 +126,6 @@ typedef struct
 	}
 	else
 	{
-		
 		endGame = [[GameOver alloc] initWithSize:skView.frame.size finalScore:finalModifier.number withModifier:finalModifier.character];
 	}
 	SKTransition *reveal = [SKTransition flipHorizontalWithDuration:0.5];
@@ -149,7 +133,6 @@ typedef struct
 	
 	//key value observers
 	[endGame addObserver:self forKeyPath:@"menuPressed" options:NSKeyValueObservingOptionNew context:nil];
-	
 }
 
 #pragma mark key-value-observers
@@ -246,33 +229,10 @@ typedef struct
 	
 	[self setUpOptions];
 	
-	//score label
-	scoreLabel = [[UILabel alloc] init];
-	scoreLabel.font = [UIFont fontWithName:@"Helvetica" size:14];
-	scoreLabel.textColor = [UIColor darkGrayColor];
-	scoreLabel.frame = CGRectMake(0, 0, [GameScene getScreenSize].width, 14);
-	scoreLabel.textAlignment = NSTextAlignmentLeft;
-	scoreLabel.numberOfLines = 0;
-	[self.view addSubview:scoreLabel];
-	
-	scoreLabel2 = [[UILabel alloc] init];
-	scoreLabel2.font = [UIFont fontWithName:@"Helvetica" size:14];
-	scoreLabel2.textColor = [UIColor darkGrayColor];
-	scoreLabel2.frame = CGRectMake(0, scoreLabel.frame.size.height, [GameScene getScreenSize].width, 14);
-	scoreLabel2.textAlignment = NSTextAlignmentLeft;
-	scoreLabel2.numberOfLines = 0;
-	[self.view addSubview:scoreLabel2];
-	
-	if(game.isTimed)
-	{
-		timerLabel = [[UILabel alloc] init];
-		timerLabel.font = [UIFont fontWithName:@"Helvetica" size:14];
-		timerLabel.textColor = [UIColor darkGrayColor];
-		timerLabel.frame = CGRectMake(0, scoreLabel.frame.size.height, [GameScene getScreenSize].width, 14);
-		timerLabel.textAlignment = NSTextAlignmentCenter;
-		timerLabel.numberOfLines = 0;
-		[self.view addSubview:timerLabel];
-	}
+	//sets up the game UI (score, timers, frames)
+	gameUI = [[GameUI alloc]initWithFrame:skView.frame isTimed:game.isTimed];
+	gameUI.userInteractionEnabled = NO;
+	[self.view addSubview:gameUI];
 	
 	[self updateScore];
 	
@@ -299,6 +259,7 @@ typedef struct
 	[options addObserver:self forKeyPath:@"donePressed" options:NSKeyValueObservingOptionNew context:nil];
 }
 
+//brings down the options menu
 -(void)showOptions:(BOOL)show
 {
 	if(show)
@@ -353,77 +314,32 @@ typedef struct
 						 }];
 	}
 }
-
+//updates the label
 -(void)updateScore
 {
 	float score = [game score];
 	float maxScore = [game maxScore];
 	
-	//fix current score and maxScore to correct symbol
-	scoreModifier scoreModified = [self scoreFixer:score];
-	scoreModifier maxScoreModified = [self scoreFixer:maxScore];
-	
-	scoreLabel.text = [NSString stringWithFormat:@"Max Score: %.2f%@",maxScoreModified.number,maxScoreModified.character];
-	scoreLabel2.text = [NSString stringWithFormat:@"Score:%.2f%@",scoreModified.number,scoreModified.character];
+	[gameUI updateScoreLabel:score];
+	[gameUI updateMaxScoreLabel:maxScore];
 }
-
+//updates the label
 -(void)updateTimer
 {
 	float time = game.gameTime;
-	int minutes = time / 60;
-	float seconds = (time-(minutes*60));
-	timerLabel.text = [NSString stringWithFormat:@"%d:%.1f",minutes,seconds];
-}
-
--(scoreModifier)scoreFixer:(float)score
-{
-	float number = score;
-	NSString *character;
-	
-	if(number > kSizeKilometer)
-	{
-		number = number / kSizeKilometer;
-		character = @"km";
-	}
-	else if(number > kSizeMeter)
-	{
-		number = number;
-		character = @"m";
-	}
-	else if(number > kSizeCentimeter)
-	{
-		number = number / kSizeCentimeter;
-		character = @"cm";
-	}
-	else if(number > kSizeMilimeter)
-	{
-		number = number / kSizeMilimeter;
-		character = @"mm";
-	}
-	else
-	{
-		number = number / kSizeMicrometer;
-		character = @"μm";
-	}
-	
-	scoreModifier returnedScoreModifier;
-	returnedScoreModifier.number = number;
-	returnedScoreModifier.character = character;
-	
-	return returnedScoreModifier;
+	[gameUI updateTimerLabel:time];
 }
 
 #pragma mark ADBannerView methods
+//create the ADBannerView
 -(void)showAd
 {
-	//Taller iAd
-	//_iAd = [[ADBannerView alloc] initWithFrame:CGRectMake(self.view.frame.size.width/2, self.view.frame.size.height, 320, 100)];
-	//_iAd.frame = CGRectOffset(_iAd.frame, -_iAd.frame.size.width/2, 0);
-	//Wider iAd
+	//creates a short and wide Ad
 	_iAd = [[ADBannerView alloc] initWithFrame:CGRectMake(0, self.view.frame.size.height, self.view.frame.size.width, 100)];
 	_iAd.delegate = self;
 }
 
+//removes the Ad from view and then removes it entirely
 -(void)removeAd
 {
 	[UIView animateWithDuration:0.2f
@@ -442,6 +358,7 @@ typedef struct
 					 }];
 }
 
+//if the Ad was loaded show it (with an animation)
 - (void)bannerViewDidLoadAd:(ADBannerView *)banner
 {
 	if (!_bannerIsVisible)
@@ -480,6 +397,7 @@ typedef struct
 	}
 }
 
+//undo setup if banner failed to show
 - (void)bannerView:(ADBannerView *)banner didFailToReceiveAdWithError:(NSError *)error
 {
 	NSLog(@"Failed to retrieve ad");
@@ -537,16 +455,9 @@ typedef struct
 	[optionControl removeObserver:self forKeyPath:@"optionsPressed"];
 	optionControl = nil;
 	
-	//remove the score text
-	[scoreLabel removeFromSuperview];
-	scoreLabel = nil;
-	[scoreLabel2 removeFromSuperview];
-	scoreLabel2 = nil;
-	if(game.isTimed)
-	{
-		[timerLabel removeFromSuperview];
-		timerLabel = nil;
-	}
+	//remove the score text and decoration
+	[gameUI removeFromSuperview];
+	gameUI = nil;
 	
 	//remove the options menu
 	[options removeObserver:self forKeyPath:@"donePressed"];
@@ -578,6 +489,8 @@ typedef struct
 {
     [super didReceiveMemoryWarning];
     // Release any cached data, images, etc that aren't in use.
+#warning remove before submiting
+	NSLog(@"MEMORY WARNING");
 }
 
 - (BOOL)prefersStatusBarHidden {

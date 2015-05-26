@@ -14,6 +14,7 @@
 		DAB69EFE1AABEC57008CE6F5 /* GameDelay.m in Sources */ = {isa = PBXBuildFile; fileRef = DAB69EFD1AABEC57008CE6F5 /* GameDelay.m */; };
 		DABBC97E1A78ADDE0086616E /* OptionsButton.m in Sources */ = {isa = PBXBuildFile; fileRef = DABBC97D1A78ADDE0086616E /* OptionsButton.m */; };
 		DABBC9811A78BAC50086616E /* OptionsMenu.m in Sources */ = {isa = PBXBuildFile; fileRef = DABBC9801A78BAC50086616E /* OptionsMenu.m */; };
+		DAD8DA1A1B13B22600FEA0F8 /* GameUI.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD8DA191B13B22600FEA0F8 /* GameUI.m */; };
 		DAED74AA1A52094A00ADDB3F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = DAED74A91A52094A00ADDB3F /* main.m */; };
 		DAED74AD1A52094A00ADDB3F /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DAED74AC1A52094A00ADDB3F /* AppDelegate.m */; };
 		DAED74B01A52094A00ADDB3F /* GameScene.m in Sources */ = {isa = PBXBuildFile; fileRef = DAED74AF1A52094A00ADDB3F /* GameScene.m */; };
@@ -49,6 +50,8 @@
 		DABBC97D1A78ADDE0086616E /* OptionsButton.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OptionsButton.m; sourceTree = "<group>"; };
 		DABBC97F1A78BAC50086616E /* OptionsMenu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OptionsMenu.h; sourceTree = "<group>"; };
 		DABBC9801A78BAC50086616E /* OptionsMenu.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OptionsMenu.m; sourceTree = "<group>"; };
+		DAD8DA181B13B22600FEA0F8 /* GameUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GameUI.h; sourceTree = "<group>"; };
+		DAD8DA191B13B22600FEA0F8 /* GameUI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GameUI.m; sourceTree = "<group>"; };
 		DAED74A41A52094A00ADDB3F /* Cold Catcher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cold Catcher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAED74A81A52094A00ADDB3F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DAED74A91A52094A00ADDB3F /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -94,6 +97,8 @@
 		DAB69EFA1AA8FA04008CE6F5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				DAD8DA181B13B22600FEA0F8 /* GameUI.h */,
+				DAD8DA191B13B22600FEA0F8 /* GameUI.m */,
 				DAB69EFC1AABEC57008CE6F5 /* GameDelay.h */,
 				DAB69EFD1AABEC57008CE6F5 /* GameDelay.m */,
 				DABBC97C1A78ADDE0086616E /* OptionsButton.h */,
@@ -308,6 +313,7 @@
 				DAED74AD1A52094A00ADDB3F /* AppDelegate.m in Sources */,
 				DAED74B01A52094A00ADDB3F /* GameScene.m in Sources */,
 				DAED74AA1A52094A00ADDB3F /* main.m in Sources */,
+				DAD8DA1A1B13B22600FEA0F8 /* GameUI.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
