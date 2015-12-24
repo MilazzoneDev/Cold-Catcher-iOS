@@ -58,7 +58,7 @@ static float const padding = 5;
 		//add buttons
 		CGSize buttonSize = CGSizeMake(180,60);
 		CGFloat xOffset = halfWidth*2/5;
-		CGFloat yTopOffset = buttonSize.height/2-(buttonSize.height/2);
+		CGFloat yTopOffset = 0; //buttonSize.height/2-(buttonSize.height/2);
 		CGFloat yBottomOffset = buttonSize.height*3/2+padding*2-(buttonSize.height/2);
 		//time attack mode
 		timeAttack = [self CreateButtonWithSize:buttonSize andText:@"Time Attack"];
@@ -163,17 +163,23 @@ static float const padding = 5;
 {
 	SKSpriteNode *button = [[SKSpriteNode alloc] initWithColor:[UIColor clearColor] size:size];
 	
-	[button addChild:[self drawRoundedRect:CGRectMake(0, 0, size.width, size.height) radius:10 color:[UIColor grayColor]]];
-	[button addChild:[self drawRoundedRect:CGRectMake(0, 0, size.width-(padding*2), size.height-(padding*2)) radius:5 color:[UIColor whiteColor]]];
+	SKSpriteNode *bottom = [self drawRoundedRect:CGRectMake(0, 0, size.width, size.height) radius:10 color:[UIColor grayColor]];
+	bottom.zPosition = 0;
+	[button addChild:bottom];
+	
+	SKSpriteNode *top = [self drawRoundedRect:CGRectMake(0, 0, size.width-(padding*2), size.height-(padding*2)) radius:5 color:[UIColor whiteColor]];
+	top.zPosition = 1;
+	[button addChild: top];
+	
 	
 	SKLabelNode *label = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
 	[label setText:text];
 	label.fontSize = 30;
 	label.fontColor = [UIColor blackColor];
 	label.position = CGPointMake(0, -padding*2);
+	label.zPosition = 2;
 	
 	[button addChild:label];
-	
 	return button;
 }
 
@@ -183,6 +189,7 @@ static float const padding = 5;
 	bool opaque = NO;
 	CGFloat scale= 0;
 	UIGraphicsBeginImageContextWithOptions(rect.size, opaque, scale);
+	
 	CGContextRef c = UIGraphicsGetCurrentContext();
 	
 	int x_left = rect.origin.x;

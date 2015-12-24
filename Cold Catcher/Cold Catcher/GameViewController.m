@@ -94,9 +94,13 @@ static float optionsOffYPosition; //set in setUpOptions
 		game = [[GameScene alloc]initEndlessGameWithSize:skView.frame.size];
 	}
 	game.scaleMode = SKSceneScaleModeAspectFill;
-	SKTransition *reveal = [SKTransition flipHorizontalWithDuration:0.5];
+
+#warning iOS 9 is not working well with transitions, need to find a fix here
+	//SKTransition *reveal = [SKTransition flipHorizontalWithDuration:0.5];
+	//[skView presentScene:game transition:reveal];
 	
-	[skView presentScene:game transition:reveal];
+	//using presentScene works for now but a transition would be apreciated here
+	[skView presentScene:game];
 	
 	//load other controls
 	[self loadOtherControls];
@@ -128,8 +132,10 @@ static float optionsOffYPosition; //set in setUpOptions
 	{
 		endGame = [[GameOver alloc] initWithSize:skView.frame.size finalScore:finalModifier.number withModifier:finalModifier.character];
 	}
-	SKTransition *reveal = [SKTransition flipHorizontalWithDuration:0.5];
-	[skView presentScene:endGame transition:reveal];
+#warning iOS 9 is not working well with transitions, need to find a fix here
+	//SKTransition *reveal = [SKTransition flipHorizontalWithDuration:0.5];
+	//[skView presentScene:endGame transition:reveal];
+	[skView presentScene:endGame];
 	
 	//key value observers
 	[endGame addObserver:self forKeyPath:@"menuPressed" options:NSKeyValueObservingOptionNew context:nil];
@@ -476,14 +482,14 @@ static float optionsOffYPosition; //set in setUpOptions
     return YES;
 }
 
-- (NSUInteger)supportedInterfaceOrientations
+/*- (NSUInteger)supportedInterfaceOrientations
 {
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
         return UIInterfaceOrientationMaskAllButUpsideDown;
     } else {
         return UIInterfaceOrientationMaskAll;
     }
-}
+}*/
 
 - (void)didReceiveMemoryWarning
 {

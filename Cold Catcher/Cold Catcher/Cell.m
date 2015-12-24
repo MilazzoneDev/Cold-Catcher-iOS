@@ -13,15 +13,21 @@
 
 static CGFloat const kAccel = 1; //percent of max speed to accelerate each second
 //static CGFloat const kMaxInsideCellSize = 0.4; //used for particles size
+static int const kMaxCellSegments = 60;
+static int const kMinCellSegments = 8;
+static CGFloat const kAvgWallDistance = 0.80f; //percent of total size;
+static CGFloat const kMaxWallDistance = 0.90f; //percent of total size;
+static CGFloat const kMinWallDistance = 0.60f; //percent of total size;
 
 typedef enum {
+	kDrawingOrderBackground,
 	kDrawingOrderCell,
 	kDrawingOrderParticle
 }kDrawingOrder;
 
 @implementation Cell
 {
-	
+	bool wallswitcher;
 }
 
 +(CGFloat)getAccel
@@ -36,7 +42,8 @@ typedef enum {
 	if(self = [super init])
 	{
 		self.radius = startingRadius;
-		self.color = [UIColor whiteColor];
+		//self.color = [UIColor whiteColor];
+		self.color = [UIColor colorWithWhite:1 alpha:1];
 		self.maxSpeed = MaxSpeed;
 		[self initSprite];
 	}
@@ -59,13 +66,15 @@ typedef enum {
 //both bacteria and player
 -(void)initSprite
 {
-	self.sprite = [SKShapeNode shapeNodeWithCircleOfRadius:self.radius];
+	[self initCellShape];
+	
+	/*self.sprite = [SKShapeNode shapeNodeWithCircleOfRadius:self.radius];
 	self.sprite.fillColor = self.color;
 	self.sprite.strokeColor = [UIColor blackColor];
-	//self.sprite.
 	self.sprite.zPosition = kDrawingOrderCell;
+	*/
 	self.curVelocity = CGPointZero;
-	[self addChild:self.sprite];
+	//[self addChild:self.sprite];
 	self.adjustedRadius = self.radius;
 	
 	//new emitter
@@ -76,7 +85,43 @@ typedef enum {
 	self.insideCell.name = @"particles";
 	[self addChild:self.insideCell];
 	*/
-	[self updateSprite];
+	[self DrawSizeUpdate];
+}
+
+//new init to show cell shape
+-(void)initCellShape
+{
+	//need to make sure it is 1 less than kMaxCellSegments to make sure we can wrap back around
+	[self recalculateSpokes];
+	//self.wallDistances = [[NSMutableArray alloc]initWithCapacity:kMaxCellSegments];
+	self.wallDistances = [NSMutableArray arrayWithCapacity:kMaxCellSegments];
+	self.wallPoints = calloc(kMaxCellSegments, sizeof(CGPoint));
+	self.wallSpokes = calloc(kMaxCellSegments * 2, sizeof(CGPoint));
+	
+	//set all wallDistances to avg and wallpoints
+	CGFloat avgDistance = self.radius* kAvgWallDistance;
+	CGFloat angle = (M_PI*2/self.numWallSegments);
+	for (int i = 0; i<self.numWallSegments; i++)
+	{
+		self.wallDistances[i] = [NSNumber numberWithFloat:avgDistance];
+		self.wallPoints[i] = CGPointMake(sinf(angle*i)*avgDistance, cosf(angle*i)*avgDistance);
+		
+		//NSLog(@"X:%f,Y:%f",self.wallPoints[i].x,self.wallPoints[i].y);
+		
+		//spokes
+		self.wallSpokes[i*2] = CGPointZero;
+		self.wallSpokes[i*2+1] = CGPointMake(sinf(angle*i)*self.radius, cosf(angle*i)*self.radius);
+	}
+	//set last segment to first so it wraps around
+	self.wallPoints[self.numWallSegments] = self.wallPoints[0];
+	
+	//set the rest of the spokes to zero
+	for(int i = self.numWallSegments; i<kMaxCellSegments; i++)
+	{
+		self.wallDistances[i] = [NSNumber numberWithFloat:avgDistance];
+		self.wallSpokes[i] = CGPointZero;
+	}
+	
 }
 
 #pragma mark updates
@@ -102,6 +147,9 @@ typedef enum {
 		//we need to change the radius
 		[self updateRadiusToPlayScale];
 	}
+	
+	//cell movement
+	[self updateWall];
 }
 
 -(void)MoveToSeekPoint:(CGFloat)dt
@@ -180,7 +228,7 @@ typedef enum {
 -(void)updateRadiusToPlayScale
 {
 	self.radius = [GameScene getScale] * self.adjustedRadius;
-	[self updateSprite];
+	[self DrawSizeUpdate];
 }
 
 //used for being eaten and eating
@@ -188,25 +236,110 @@ typedef enum {
 {
 	self.adjustedRadius += changeAmt;
 	self.radius = self.adjustedRadius * [GameScene getScale];
-	[self updateSprite];
+	[self DrawSizeUpdate];
 }
 
--(void)updateSprite
+//used to recalculate the number of spokes we have on the cell
+-(void)recalculateSpokes
 {
+	//need to make sure it is 1 less than kMaxCellSegments to make sure we can wrap back around
+	if(self.radius/2 > kMaxCellSegments-1)
+	{
+		self.numWallSegments = kMaxCellSegments-1;
+	}
+	else if(self.radius/2 < kMinCellSegments)
+	{
+		self.numWallSegments = kMinCellSegments;
+	}
+	else
+	{
+		self.numWallSegments = floorf(self.radius/2);
+	}
+}
+
+-(void)updateSpokes
+{
+	[self recalculateSpokes];
+	//set all spoke points
+	CGFloat angle = (M_PI*2/self.numWallSegments);
+	//we only change every other spoke to make it pointy
+	for (int i = 0; i<self.numWallSegments; i++)
+	{
+		//spokes
+		//self.wallSpokes[i*2] = CGPointZero; //Don't need to change will be the same
+		self.wallSpokes[i*2+1] = CGPointMake(sinf(angle*i)*self.radius, cosf(angle*i)*self.radius);
+	}
+}
+
+//will be called each frame to move the wall
+-(void)updateWall
+{
+	//set all wallDistances to avg and wallpoints
+	CGFloat avgDistance = self.radius* kAvgWallDistance;
+	CGFloat angle = (M_PI*2/self.numWallSegments);
+	//update walls every other frame to save performance
+	for (int i = 0; i<self.numWallSegments; i++)
+	{
+		self.wallDistances[i] = [NSNumber numberWithFloat:avgDistance];
+		self.wallPoints[i] = CGPointMake(sinf(angle*i)*avgDistance, cosf(angle*i)*avgDistance);
+		//NSLog(@"X:%f,Y:%f",self.wallPoints[i].x,self.wallPoints[i].y);
+	}
+	//set last segment to first so it wraps around
+	self.wallPoints[self.numWallSegments] = self.wallPoints[0];
+	
+	//change wall switcher
+	wallswitcher = !wallswitcher;
+	
+	//draw the new wall
 	[self.sprite removeFromParent];
+	
+	self.sprite = [SKShapeNode shapeNodeWithSplinePoints:[self wallPoints] count:[self numWallSegments]+1];
+	self.sprite.fillColor = self.color;
+	self.sprite.zPosition = kDrawingOrderCell;
+	self.sprite.strokeColor = [UIColor blackColor];
+	self.sprite.lineWidth = 1;
+	[self addChild:self.sprite];
+}
+
+//called only when the size of the cell changes
+-(void)DrawSizeUpdate
+{
+	[self updateSpokes];
+	[self.spriteBackground removeFromParent];
+	
+	/*
+	//old drawing of just a circle
 	//update sprite
 	self.sprite = [SKShapeNode shapeNodeWithCircleOfRadius:self.radius];
 	self.sprite.fillColor = self.color;
 	self.sprite.strokeColor = [UIColor blackColor];
 	self.sprite.lineWidth = 1;
 	[self addChild:self.sprite];
-	
+	*/
 	//update emitter
 	/*self.insideCell.particleSpeedRange = self.radius;
 	CGFloat sizePercentage = self.radius / [GameScene getMaxCharacterSize];
 	self.insideCell.particleScale = kMaxInsideCellSize * sizePercentage;
 	self.insideCell.particleScaleSpeed = -1 * (kMaxInsideCellSize * sizePercentage /4);
 	*/
+	
+	//only needs to reset background on size change
+	self.spriteBackground = [SKShapeNode shapeNodeWithPoints:[self wallSpokes] count:[self numWallSegments]*2];
+	self.spriteBackground.zPosition = kDrawingOrderBackground;
+	self.spriteBackground.fillColor = [UIColor clearColor];
+	self.spriteBackground.strokeColor = [UIColor blackColor];
+	self.spriteBackground.lineWidth = 1;
+	[self addChild:self.spriteBackground];
+	
+	
+	
+}
+
+
+-(void)dealloc
+{
+	if(self.wallPoints) free(self.wallPoints);
+	if(self.wallSpokes) free(self.wallSpokes);
 }
 
 @end
