@@ -12,7 +12,7 @@
 
 +(void)playerUpdate:(CGFloat)newSize;
 -(id)initEnemy:(CGFloat)startingRadius withSpeedof:(CGFloat)MaxSpeed;
--(void)enemyUpdate;
+-(void)enemyUpdate:(CGFloat)dt;
 -(CGPoint)randomMove;
 -(CGPoint)randomOffScreenPosition;
 

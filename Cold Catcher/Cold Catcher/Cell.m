@@ -13,11 +13,15 @@
 
 static CGFloat const kAccel = 1; //percent of max speed to accelerate each second
 //static CGFloat const kMaxInsideCellSize = 0.4; //used for particles size
-static int const kMaxCellSegments = 60;
+static int const kMaxCellSegments = 50;
 static int const kMinCellSegments = 8;
-static CGFloat const kAvgWallDistance = 0.80f; //percent of total size;
-static CGFloat const kMaxWallDistance = 0.90f; //percent of total size;
-static CGFloat const kMinWallDistance = 0.60f; //percent of total size;
+//percent of total size
+static CGFloat const kMaxWallDistance = 0.90f;
+static CGFloat const kAvgWallDistance = 0.75f;
+static CGFloat const kMinWallDistance = 0.40f;
+static CGFloat const kMaxWallMove = 0.5;
+static CGFloat const kAvgWallMove = 0.25;
+static CGFloat const kMinWallMove = 0.1;
 
 typedef enum {
 	kDrawingOrderBackground,
@@ -27,7 +31,9 @@ typedef enum {
 
 @implementation Cell
 {
-	bool wallswitcher;
+	//used to calculate spline
+	CGPoint* wallPoints;
+	CGPoint* wallSpokes;
 }
 
 +(CGFloat)getAccel
@@ -95,8 +101,8 @@ typedef enum {
 	[self recalculateSpokes];
 	//self.wallDistances = [[NSMutableArray alloc]initWithCapacity:kMaxCellSegments];
 	self.wallDistances = [NSMutableArray arrayWithCapacity:kMaxCellSegments];
-	self.wallPoints = calloc(kMaxCellSegments, sizeof(CGPoint));
-	self.wallSpokes = calloc(kMaxCellSegments * 2, sizeof(CGPoint));
+	wallPoints = (CGPoint*)malloc(kMaxCellSegments * sizeof(CGPoint));
+	wallSpokes = (CGPoint*)malloc(kMaxCellSegments * 2 * sizeof(CGPoint));
 	
 	//set all wallDistances to avg and wallpoints
 	CGFloat avgDistance = self.radius* kAvgWallDistance;
@@ -104,37 +110,37 @@ typedef enum {
 	for (int i = 0; i<self.numWallSegments; i++)
 	{
 		self.wallDistances[i] = [NSNumber numberWithFloat:avgDistance];
-		self.wallPoints[i] = CGPointMake(sinf(angle*i)*avgDistance, cosf(angle*i)*avgDistance);
+		wallPoints[i] = CGPointMake(sinf(angle*i)*avgDistance, cosf(angle*i)*avgDistance);
 		
 		//NSLog(@"X:%f,Y:%f",self.wallPoints[i].x,self.wallPoints[i].y);
 		
 		//spokes
-		self.wallSpokes[i*2] = CGPointZero;
-		self.wallSpokes[i*2+1] = CGPointMake(sinf(angle*i)*self.radius, cosf(angle*i)*self.radius);
+		wallSpokes[i*2] = CGPointZero;
+		wallSpokes[i*2+1] = CGPointMake(sinf(angle*i)*self.radius, cosf(angle*i)*self.radius);
 	}
 	//set last segment to first so it wraps around
-	self.wallPoints[self.numWallSegments] = self.wallPoints[0];
+	wallPoints[self.numWallSegments] = wallPoints[0];
 	
 	//set the rest of the spokes to zero
 	for(int i = self.numWallSegments; i<kMaxCellSegments; i++)
 	{
 		self.wallDistances[i] = [NSNumber numberWithFloat:avgDistance];
-		self.wallSpokes[i] = CGPointZero;
+		wallSpokes[i] = CGPointZero;
 	}
 	
 }
 
 #pragma mark updates
 //used to update traits (not used for motion)
--(void)playerUpdate
+-(void)playerUpdate:(CGFloat)dt
 {
-	[self update];
+	[self update:dt];
 	[Bacteria playerUpdate:self.radius];
 	
 }
 
 //update each frame (both bacteria and player)
--(void)update
+-(void)update:(CGFloat)dt
 {
 	//update playscale
 	CGFloat playscale = [GameScene getScale];
@@ -149,6 +155,7 @@ typedef enum {
 	}
 	
 	//cell movement
+	[self moveWall:dt];
 	[self updateWall];
 }
 
@@ -224,6 +231,7 @@ typedef enum {
 	
 }
 
+#pragma mark Size Change
 //used to change the size for playscale purposes
 -(void)updateRadiusToPlayScale
 {
@@ -243,7 +251,7 @@ typedef enum {
 -(void)recalculateSpokes
 {
 	//need to make sure it is 1 less than kMaxCellSegments to make sure we can wrap back around
-	if(self.radius/2 > kMaxCellSegments-1)
+	/*if(self.radius/2 > kMaxCellSegments-1)
 	{
 		self.numWallSegments = kMaxCellSegments-1;
 	}
@@ -254,7 +262,9 @@ typedef enum {
 	else
 	{
 		self.numWallSegments = floorf(self.radius/2);
-	}
+	}*/
+	
+	self.numWallSegments = Clamp(floorf(self.radius/2), kMinCellSegments, kMaxCellSegments-1);
 }
 
 -(void)updateSpokes
@@ -267,17 +277,19 @@ typedef enum {
 	{
 		//spokes
 		//self.wallSpokes[i*2] = CGPointZero; //Don't need to change will be the same
-		self.wallSpokes[i*2+1] = CGPointMake(sinf(angle*i)*self.radius, cosf(angle*i)*self.radius);
+		wallSpokes[i*2+1] = CGPointMake(sinf(angle*i)*self.radius, cosf(angle*i)*self.radius);
 	}
+	//NSLog(@"%i",self.numWallSegments);
 }
 
-//will be called each frame to move the wall
--(void)updateWall
+-(void)moveWall:(CGFloat)dt
 {
 	//set all wallDistances to avg and wallpoints
 	CGFloat avgDistance = self.radius* kAvgWallDistance;
 	CGFloat angle = (M_PI*2/self.numWallSegments);
-	//update walls every other frame to save performance
+	
+	/*//simple average method of drawing (always the average circle)
+	//update walls every other frame to save performance (this has issues with drawing upon shrinking)
 	for (int i = 0; i<self.numWallSegments; i++)
 	{
 		self.wallDistances[i] = [NSNumber numberWithFloat:avgDistance];
@@ -286,14 +298,49 @@ typedef enum {
 	}
 	//set last segment to first so it wraps around
 	self.wallPoints[self.numWallSegments] = self.wallPoints[0];
+	*/
+	
+	//simple movement method of drawing (not dependant on movement or anything)
+	for (int i = 0; i<self.numWallSegments; i++)
+	{
+		//only move some of the wall
+		if(RandomSign()>0)
+		{
+			//use a random number to move the wall
+			CGFloat randomnumber = RandomFloatRange(kMinWallMove, kMaxWallMove);
+			CGFloat wallDistanceNumber = [(NSNumber *)self.wallDistances[i] floatValue];
+			CGFloat newDistance = (RandomSign()*randomnumber*dt*self.radius) + wallDistanceNumber;
+			if(newDistance < avgDistance*self.radius)
+			{
+				newDistance += (randomnumber*dt*self.radius);
+			}
+			else if(newDistance > avgDistance*self.radius)
+			{
+				newDistance += (randomnumber*dt*self.radius);
+			}
+			CGFloat newClampedDistance = Clamp(newDistance, kMinWallDistance*self.radius, kMaxWallDistance*self.radius);
+			self.wallDistances[i] = [NSNumber numberWithFloat:newClampedDistance];
+			
+			//set wall points because it was changed
+			wallPoints[i] = CGPointMake(sinf(angle*i)*newClampedDistance,cosf(angle*i)*newClampedDistance);
+		}
+		
+	}
+	//set last segment to first so it wraps around
+	wallPoints[self.numWallSegments] = wallPoints[0];
 	
 	//change wall switcher
-	wallswitcher = !wallswitcher;
-	
+	//wallswitcher = !wallswitcher;
+}
+
+#pragma mark Drawing
+//will be called each frame to move the wall
+-(void)updateWall
+{
 	//draw the new wall
 	[self.sprite removeFromParent];
 	
-	self.sprite = [SKShapeNode shapeNodeWithSplinePoints:[self wallPoints] count:[self numWallSegments]+1];
+	self.sprite = [SKShapeNode shapeNodeWithSplinePoints:wallPoints count:[self numWallSegments]+1];
 	self.sprite.fillColor = self.color;
 	self.sprite.zPosition = kDrawingOrderCell;
 	self.sprite.strokeColor = [UIColor blackColor];
@@ -324,22 +371,20 @@ typedef enum {
 	*/
 	
 	//only needs to reset background on size change
-	self.spriteBackground = [SKShapeNode shapeNodeWithPoints:[self wallSpokes] count:[self numWallSegments]*2];
+	self.spriteBackground = [SKShapeNode shapeNodeWithPoints:wallSpokes count:[self numWallSegments]*2];
 	self.spriteBackground.zPosition = kDrawingOrderBackground;
 	self.spriteBackground.fillColor = [UIColor clearColor];
 	self.spriteBackground.strokeColor = [UIColor blackColor];
 	self.spriteBackground.lineWidth = 1;
 	[self addChild:self.spriteBackground];
 	
-	
-	
 }
 
 
 -(void)dealloc
 {
-	if(self.wallPoints) free(self.wallPoints);
-	if(self.wallSpokes) free(self.wallSpokes);
+	if(wallPoints) free(wallPoints);
+	if(wallSpokes) free(wallSpokes);
 }
 
 @end

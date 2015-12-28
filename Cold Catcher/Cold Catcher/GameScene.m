@@ -238,7 +238,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 //allows the plaeyr to move and checks for player end game
 -(void)updatePlayer:(CGFloat)dt
 {
-	[_player playerUpdate];
+	[_player playerUpdate:dt];
 	
 	[_player MoveToSeekPoint:dt];
 }
@@ -250,7 +250,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 	for(int i=0; i < _bacteria.count; i++)
 	{
 		Bacteria *bacteria = _bacteria[i];
-		[bacteria enemyUpdate];
+		[bacteria enemyUpdate:dt];
 
 		[bacteria MoveToSeekPoint:dt];
 		
@@ -259,6 +259,8 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 		{
 			[bacteria removeFromParent];
 			[_bacteria removeObjectAtIndex:i];
+#warning potential oops...
+			//bacteria = nil;
 			i--;
 		}
 	}

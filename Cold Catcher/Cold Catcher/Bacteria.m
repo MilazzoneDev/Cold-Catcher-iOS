@@ -26,14 +26,14 @@ static float playerSize;
 	if(self = [super initEnemyCell:startingRadius withSpeedOf:MaxSpeed])
 	{
 		[super setSeekPoint:[self randomMove]];
-		[self enemyUpdate];
+		[self enemyUpdate:0];
 	}
 	return self;
 }
 
--(void)enemyUpdate
+-(void)enemyUpdate:(CGFloat)dt
 {
-	[super update];
+	[super update:dt];
 	[self enemyColorUpdate];
 }
 

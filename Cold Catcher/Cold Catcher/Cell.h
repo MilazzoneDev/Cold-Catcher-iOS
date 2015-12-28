@@ -26,9 +26,7 @@
 
 //cell body effects
 @property(nonatomic, assign) int numWallSegments;
-//used to calculate spline
-@property(nonatomic) CGPoint* wallPoints;
-@property(nonatomic) CGPoint* wallSpokes;
+
 //used to move spline
 @property(nonatomic) NSMutableArray* wallDistances;
 
@@ -41,8 +39,8 @@
 -(id)initPlayer:(CGFloat)startingRadius withSpeedOf:(CGFloat)MaxSpeed;
 -(id)initEnemyCell:(CGFloat)startingRadius withSpeedOf:(CGFloat)MaxSpeed;
 
--(void)playerUpdate;
--(void)update;
+-(void)playerUpdate:(CGFloat)dt;
+-(void)update:(CGFloat)dt;
 -(void)MoveToSeekPoint:(CGFloat)dt;
 
 -(void)changeRadius:(CGFloat)changeAmt;
