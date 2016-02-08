@@ -53,7 +53,10 @@ static float optionsOffYPosition; //set in setUpOptions
     skView.showsNodeCount = YES;
     /* Sprite Kit applies additional optimizations to improve rendering performance */
     skView.ignoresSiblingOrder = YES;
-    
+	
+	//pull the scores from the plist (only needs to be done once)
+	[GameOver setupScoreImages];
+	
 	[self showMenu];
 	
 	[self.view addSubview:skView];
@@ -130,7 +133,7 @@ static float optionsOffYPosition; //set in setUpOptions
 	}
 	else
 	{
-		endGame = [[GameOver alloc] initWithSize:skView.frame.size finalScore:finalModifier.number withModifier:finalModifier.character];
+		endGame = [[GameOver alloc] initWithSize:skView.frame.size finalSize:finalModifier.number withModifier:finalModifier.character andScore:[game maxScore]];
 	}
 #warning iOS 9 is not working well with transitions, need to find a fix here
 	//SKTransition *reveal = [SKTransition flipHorizontalWithDuration:0.5];

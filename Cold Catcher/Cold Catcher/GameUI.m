@@ -142,9 +142,6 @@ static float const padding = 10;
 	CGRect rectangle = CGRectMake(maxScoreLabel.frame.origin.x - padding, maxScoreLabel.frame.origin.y - padding, gameframe.size.width/4, maxScoreLabel.frame.size.height*3);
 	
 	[self drawRoundedRect:_context rect:rectangle radius:10 color:[UIColor colorWithRed:0.8 green:0.8 blue:0.8 alpha:1]];
-
-	
-	
 }
 
 

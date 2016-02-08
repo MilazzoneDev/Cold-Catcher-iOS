@@ -48,7 +48,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 	CGFloat _playerEatSpeed;
 	CGFloat _enemyEatSpeed;
 	//used to visualize zoomout
-	SKShapeNode *zoombar;
+	SKShapeNode *_zoombar;
 
 }
 
@@ -149,7 +149,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 	
 	//start score
 	_maxScore = 0;
-	[self changeScore:15*kScoreDivider];
+	[self changeScore:5*kScoreDivider];
 }
 
 //initializes various variables that are needed for gameplay
@@ -296,10 +296,10 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 		CurrentScale -= kPlayScalePerSec*dt;
 		
 		//update zoombar (used for visual purposes)
-		[zoombar removeFromParent];
-		zoombar = [SKShapeNode shapeNodeWithRect:CGRectMake(0, 0, gameScreen.width*CurrentScale, gameScreen.height*CurrentScale)];
-		zoombar.position = CGPointMake(gameScreen.width/2-zoombar.frame.size.width/2, gameScreen.height/2-zoombar.frame.size.height/2);
-		[self addChild:zoombar];
+		[_zoombar removeFromParent];
+		_zoombar = [SKShapeNode shapeNodeWithRect:CGRectMake(0, 0, gameScreen.width*CurrentScale, gameScreen.height*CurrentScale)];
+		_zoombar.position = CGPointMake(gameScreen.width/2-_zoombar.frame.size.width/2, gameScreen.height/2-_zoombar.frame.size.height/2);
+		[self addChild:_zoombar];
 		
 		
 		//check scale
@@ -307,7 +307,7 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 		{
 			CurrentScale = 1.0;
 			isUpdatingScale = NO;
-			[zoombar removeFromParent];
+			[_zoombar removeFromParent];
 		}
 	}
 	else
@@ -315,10 +315,10 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 		
 		if(_player.radius > [self getMaxPlayerSize])
 		{
-			zoombar = [SKShapeNode shapeNodeWithRect:CGRectMake(0, 0, gameScreen.width, gameScreen.height)];
-			zoombar.fillColor = [SKColor clearColor];
-			zoombar.strokeColor = [SKColor blackColor];
-			[self addChild:zoombar];
+			_zoombar = [SKShapeNode shapeNodeWithRect:CGRectMake(0, 0, gameScreen.width, gameScreen.height)];
+			_zoombar.fillColor = [SKColor clearColor];
+			_zoombar.strokeColor = [SKColor blackColor];
+			[self addChild:_zoombar];
 			_numZoomOuts++;
 			isUpdatingScale = YES;
 		}
@@ -392,9 +392,9 @@ static CGFloat const kScoreDivider = 1.0/1000000.0; //1μm = 0.000001m || 1m = 1
 			
 				[_player changeRadius:playerChangeAmt];
 				[bacteria changeRadius:enemyChangeAmt];
-#warning still not correctly adding more score for larger sizes
+				
 				//change speed of score to correlate with actual size (roughly)
-				float ScaleFix = (_numZoomOuts>0)? (1/kPlayScaleChange * _numZoomOuts): 1;
+				float ScaleFix = (_numZoomOuts>0)? (pow((1/kPlayScaleChange), _numZoomOuts)): 1;
 				[self changeScore:_score+(playerChangeAmt*kScoreDivider*ScaleFix)];
 			}
 			

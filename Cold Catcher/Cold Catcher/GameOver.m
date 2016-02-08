@@ -8,16 +8,33 @@
 
 #import "GameOver.h"
 
+static NSArray *scoreIdentifier;
+static NSArray *scoreImage;
+static NSString *textType;
+
 @implementation GameOver
 {
 	double halfHeight;
 	double halfWidth;
 	
 	SKLabelNode *_Title;
-	SKLabelNode *_finalScore;
+	SKLabelNode *_finalSize;
+	SKLabelNode *_compare;
 	SKLabelNode *_touch;
 	
-	BOOL backToMenu;
+	BOOL _backToMenu;
+}
+
++(void)setupScoreImages
+{
+	NSDictionary *dictionary = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"ScoreData" ofType:@"plist"]];
+	//NSLog(@"dictionary = %@", dictionary);
+	scoreIdentifier = [dictionary objectForKey:@"ScoreCheck"]; //size of objects
+	//NSLog(@"array = %@", scoreIdentifier);
+	scoreImage = [dictionary objectForKey:@"ScoreImage"]; //name of objects
+	//NSLog(@"array = %@", scoreImage);
+	
+	textType = @"Helvetica";
 }
 
 #pragma mark Time Attack ending
@@ -39,32 +56,32 @@
 		[self SetTitle:@"Game Over"];
 		
 		//final score
-		_finalScore = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
-		_finalScore.position = CGPointMake(halfWidth, self.size.height/2);
-		_finalScore.fontSize = 20;
-		_finalScore.fontColor = [UIColor blackColor];
+		_finalSize = [SKLabelNode labelNodeWithFontNamed:textType];
+		_finalSize.position = CGPointMake(halfWidth, self.size.height/2);
+		_finalSize.fontSize = 20;
+		_finalSize.fontColor = [UIColor blackColor];
 		int minutes = finalTime / 60;
 		float seconds = (finalTime-(minutes*60));
-		[_finalScore setText:[NSString stringWithFormat:@"final time: %d:%.1f",minutes,seconds]];
-		[self addChild:_finalScore];
+		[_finalSize setText:[NSString stringWithFormat:@"final time: %d:%.1f",minutes,seconds]];
+		[self addChild:_finalSize];
 		
 		
 		//touch to continue message
-		_touch = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
+		_touch = [SKLabelNode labelNodeWithFontNamed:textType];
 		_touch.position = CGPointMake(halfWidth, self.size.height/3);
 		_touch.fontSize = 20;
 		_touch.fontColor = [UIColor blackColor];
 		[_touch setText:@"(touch to continue)"];
 		[self addChild:_touch];
 		
-		backToMenu = NO;
+		_backToMenu = NO;
 	}
 	
 	return self;
 }
 
 #pragma mark Endless mode ending
--(id)initWithSize:(CGSize)size finalScore:(float)finalScore withModifier:(NSString *)finalModifier
+-(id)initWithSize:(CGSize)size finalSize:(float)finalSize withModifier:(NSString *)finalModifier andScore:(float)finalScore
 {
 	if (self = [super initWithSize:size])
 	{
@@ -82,23 +99,33 @@
 		[self SetTitle:@"Game Over"];
 		
 		//final score
-		_finalScore = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
-		_finalScore.position = CGPointMake(halfWidth, self.size.height/2);
-		_finalScore.fontSize = 20;
-		_finalScore.fontColor = [UIColor blackColor];
-		[_finalScore setText:[NSString stringWithFormat:@"final score: %.2f%@",finalScore,finalModifier]];
-		[self addChild:_finalScore];
+		_finalSize = [SKLabelNode labelNodeWithFontNamed:textType];
+		_finalSize.position = CGPointMake(halfWidth, self.size.height/2);
+		_finalSize.fontSize = 20;
+		_finalSize.fontColor = [UIColor blackColor];
+		[_finalSize setText:[NSString stringWithFormat:@"final score: %.2f%@",finalSize,finalModifier]];
+		[self addChild:_finalSize];
 		
+		
+		//image
+		int imageLocation = [self CompareSize:finalScore];
+		_compare = [SKLabelNode labelNodeWithFontNamed:textType];
+		_compare.position = CGPointMake(halfWidth/2, self.size.height/4);
+		_compare.fontSize = 20;
+		_compare.fontColor = [UIColor blackColor];
+		[_compare setText:[NSString stringWithFormat:@"You grew bigger than %@",scoreImage[imageLocation]]];
+		[self addChild:_compare];
+#warning incomplete image code
 		
 		//touch to continue message
-		_touch = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
+		_touch = [SKLabelNode labelNodeWithFontNamed:textType];
 		_touch.position = CGPointMake(halfWidth, self.size.height/3);
 		_touch.fontSize = 20;
 		_touch.fontColor = [UIColor blackColor];
 		[_touch setText:@"(touch to continue)"];
 		[self addChild:_touch];
 		
-		backToMenu = NO;
+		_backToMenu = NO;
 		
 	}
 	return self;
@@ -106,12 +133,25 @@
 
 -(void)SetTitle:(NSString*)text
 {
-	_Title = [SKLabelNode labelNodeWithFontNamed:@"Helvetica"];
+	_Title = [SKLabelNode labelNodeWithFontNamed:textType];
 	_Title.position = CGPointMake(halfWidth, self.size.height*2/3);
 	_Title.fontSize = 30;
 	_Title.fontColor = [UIColor blackColor];
 	[_Title setText:text];
 	[self addChild:_Title];
+}
+
+-(int)CompareSize:(float)finalSize
+{
+	for(int i=0; i< [scoreIdentifier count]; i++)
+	{
+		if([scoreIdentifier[i] floatValue] > finalSize)
+		{
+			return i-1;
+		}
+	}
+	//larger than the last item
+	return ((int)[scoreIdentifier count]-1);
 }
 
 -(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
@@ -122,7 +162,7 @@
 		//if they tap the screen
 		if(CGRectContainsPoint(self.scene.frame, touchPoint))
 		{
-			backToMenu = YES;
+			_backToMenu = YES;
 		}
 	}
 }
@@ -132,12 +172,12 @@
 	for (UITouch *touch in touches) {
 		CGPoint touchPoint = [touch locationInNode:self];
 		//if they tap the screen
-		if(CGRectContainsPoint(self.scene.frame, touchPoint) && backToMenu)
+		if(CGRectContainsPoint(self.scene.frame, touchPoint) && _backToMenu)
 		{
 			self.menuPressed = YES;
 		}
 	}
-	backToMenu = NO;
+	_backToMenu = NO;
 }
 
 @end
